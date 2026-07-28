@@ -1,142 +1,77 @@
-import json
 import os
-import sqlite3
-from datetime import datetime
-from pathlib import Path
 
-# Vercel의 서버리스 환경은 배포 파일시스템이 읽기 전용이라 /tmp만 쓰기 가능하다.
-# 이 경우 데이터는 함수 인스턴스가 재시작될 때마다 초기화된다(PRD_step3.md의 배포 caveat 참고).
-if os.environ.get("VERCEL"):
-    DB_PATH = Path("/tmp/fridgechef.db")
-else:
-    DB_PATH = Path(
-        os.environ.get("FRIDGECHEF_DB_PATH")
-        or (Path(__file__).resolve().parent.parent / "data" / "fridgechef.db")
-    )
+from supabase import create_client
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+_client = None
 
 
-def get_connection() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
-    return conn
+class NicknameTakenError(Exception):
+    pass
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _client
 
 
 def init_db() -> None:
-    conn = get_connection()
-    try:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS profiles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nickname TEXT UNIQUE NOT NULL,
-                allergies TEXT DEFAULT '',
-                dislikes TEXT DEFAULT '',
-                default_servings INTEGER DEFAULT 2,
-                created_at TEXT NOT NULL
-            )
-        """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS saved_recipes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                profile_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                time_minutes INTEGER,
-                servings INTEGER,
-                used_ingredients TEXT,
-                missing_ingredients TEXT,
-                steps TEXT,
-                saved_at TEXT NOT NULL,
-                FOREIGN KEY (profile_id) REFERENCES profiles (id)
-            )
-        """)
-        conn.commit()
-    finally:
-        conn.close()
+    # 테이블은 Supabase 마이그레이션으로 미리 생성되어 있어 별도 초기화가 필요 없다.
+    pass
 
 
 def list_profiles() -> list[dict]:
-    conn = get_connection()
-    try:
-        rows = conn.execute("SELECT * FROM profiles ORDER BY nickname").fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
+    res = _get_client().table("profiles").select("*").order("nickname").execute()
+    return res.data
 
 
 def get_profile(profile_id: int) -> dict | None:
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,)).fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
+    res = _get_client().table("profiles").select("*").eq("id", profile_id).limit(1).execute()
+    return res.data[0] if res.data else None
 
 
 def create_profile(nickname: str, allergies: list[str], dislikes: list[str], servings: int) -> int:
-    conn = get_connection()
-    try:
-        cur = conn.execute(
-            "INSERT INTO profiles (nickname, allergies, dislikes, default_servings, created_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (nickname, ",".join(allergies), ",".join(dislikes), servings, datetime.utcnow().isoformat()),
-        )
-        conn.commit()
-        return cur.lastrowid
-    finally:
-        conn.close()
+    client = _get_client()
+    existing = client.table("profiles").select("id").eq("nickname", nickname).limit(1).execute()
+    if existing.data:
+        raise NicknameTakenError(nickname)
+
+    res = client.table("profiles").insert({
+        "nickname": nickname,
+        "allergies": ",".join(allergies),
+        "dislikes": ",".join(dislikes),
+        "default_servings": servings,
+    }).execute()
+    return res.data[0]["id"]
 
 
 def save_recipe(profile_id: int, recipe: dict) -> None:
-    conn = get_connection()
-    try:
-        conn.execute(
-            "INSERT INTO saved_recipes "
-            "(profile_id, title, time_minutes, servings, used_ingredients, missing_ingredients, steps, saved_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                profile_id,
-                recipe["title"],
-                recipe.get("time_minutes"),
-                recipe.get("servings"),
-                json.dumps(recipe.get("used_ingredients", []), ensure_ascii=False),
-                json.dumps(recipe.get("missing_ingredients", []), ensure_ascii=False),
-                json.dumps(recipe.get("steps", []), ensure_ascii=False),
-                datetime.utcnow().isoformat(),
-            ),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    _get_client().table("saved_recipes").insert({
+        "profile_id": profile_id,
+        "title": recipe["title"],
+        "time_minutes": recipe.get("time_minutes"),
+        "servings": recipe.get("servings"),
+        "used_ingredients": recipe.get("used_ingredients", []),
+        "missing_ingredients": recipe.get("missing_ingredients", []),
+        "steps": recipe.get("steps", []),
+    }).execute()
 
 
 def get_saved_recipes(profile_id: int) -> list[dict]:
-    conn = get_connection()
-    try:
-        rows = conn.execute(
-            "SELECT * FROM saved_recipes WHERE profile_id = ? ORDER BY saved_at DESC", (profile_id,)
-        ).fetchall()
-        return [
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "time_minutes": r["time_minutes"],
-                "servings": r["servings"],
-                "used_ingredients": json.loads(r["used_ingredients"] or "[]"),
-                "missing_ingredients": json.loads(r["missing_ingredients"] or "[]"),
-                "steps": json.loads(r["steps"] or "[]"),
-                "saved_at": r["saved_at"],
-            }
-            for r in rows
-        ]
-    finally:
-        conn.close()
+    res = (
+        _get_client()
+        .table("saved_recipes")
+        .select("*")
+        .eq("profile_id", profile_id)
+        .order("saved_at", desc=True)
+        .execute()
+    )
+    return res.data
 
 
 def delete_recipe(recipe_id: int) -> None:
-    conn = get_connection()
-    try:
-        conn.execute("DELETE FROM saved_recipes WHERE id = ?", (recipe_id,))
-        conn.commit()
-    finally:
-        conn.close()
+    _get_client().table("saved_recipes").delete().eq("id", recipe_id).execute()

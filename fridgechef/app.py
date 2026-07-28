@@ -1,9 +1,9 @@
 import os
-import sqlite3
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from utils.db import (
+    NicknameTakenError,
     create_profile,
     delete_recipe,
     get_profile,
@@ -171,7 +171,7 @@ def recipes_save(index):
         try:
             save_recipe(profile_id, recipes[index])
             flash(f"'{recipes[index]['title']}' 레시피를 저장했습니다.")
-        except sqlite3.OperationalError:
+        except Exception:
             flash("레시피 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")
     return redirect(url_for("recipes_page"))
 
@@ -202,7 +202,7 @@ def profile_create():
 
     try:
         profile_id = create_profile(nickname, allergies, dislikes, default_servings)
-    except sqlite3.IntegrityError:
+    except NicknameTakenError:
         flash("이미 존재하는 닉네임입니다.")
         return redirect(url_for("profile_page"))
 
