@@ -1,9 +1,18 @@
 import json
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "fridgechef.db"
+# Vercel의 서버리스 환경은 배포 파일시스템이 읽기 전용이라 /tmp만 쓰기 가능하다.
+# 이 경우 데이터는 함수 인스턴스가 재시작될 때마다 초기화된다(PRD_step3.md의 배포 caveat 참고).
+if os.environ.get("VERCEL"):
+    DB_PATH = Path("/tmp/fridgechef.db")
+else:
+    DB_PATH = Path(
+        os.environ.get("FRIDGECHEF_DB_PATH")
+        or (Path(__file__).resolve().parent.parent / "data" / "fridgechef.db")
+    )
 
 
 def get_connection() -> sqlite3.Connection:

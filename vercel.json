@@ -1,0 +1,9 @@
+{
+  "builds": [
+    { "src": "fridgechef/app.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/static/(.*)", "dest": "fridgechef/app.py" },
+    { "src": "/(.*)", "dest": "fridgechef/app.py" }
+  ]
+}
