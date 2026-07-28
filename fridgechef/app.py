@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Vercel의 Python 런타임은 이 파일이 있는 폴더를 sys.path에 자동으로 넣어주지 않아
+# "utils" 패키지를 못 찾는 ModuleNotFoundError가 발생한다. 명시적으로 추가해준다.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
