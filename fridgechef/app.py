@@ -36,7 +36,14 @@ def _allowed_file(filename: str) -> bool:
 
 def _current_profile() -> dict | None:
     profile_id = session.get("profile_id")
-    return get_profile(profile_id) if profile_id else None
+    if not profile_id:
+        return None
+    try:
+        return get_profile(profile_id)
+    except Exception:
+        print("=== _current_profile 조회 실패 ===", flush=True)
+        traceback.print_exc()
+        return None
 
 
 def _recipe_condition_defaults() -> tuple[str, int]:
@@ -167,9 +174,26 @@ def recipes_generate():
             **common,
         )
 
-    for recipe in recipes:
-        text = " ".join(recipe.get("used_ingredients", []) + recipe.get("steps", []))
-        recipe["warning"] = any(item in text for item in exclude)
+    try:
+        for recipe in recipes:
+            # 무료 모델이 가끔 배열이어야 할 필드를 문자열 등 다른 형태로 반환할 수 있어 방어적으로 정규화한다.
+            used = recipe.get("used_ingredients") or []
+            missing = recipe.get("missing_ingredients") or []
+            steps = recipe.get("steps") or []
+            recipe["used_ingredients"] = used if isinstance(used, list) else [str(used)]
+            recipe["missing_ingredients"] = missing if isinstance(missing, list) else [str(missing)]
+            recipe["steps"] = steps if isinstance(steps, list) else [str(steps)]
+
+            text = " ".join(recipe["used_ingredients"] + recipe["steps"])
+            recipe["warning"] = any(item in text for item in exclude)
+    except Exception:
+        print("=== /recipes/generate 후처리 실패 ===", flush=True)
+        traceback.print_exc()
+        return render_template(
+            "recipes.html", recipes=[],
+            error="레시피를 생성하지 못했습니다. 다시 시도해주세요.",
+            **common,
+        )
 
     session["recipes"] = recipes
     return render_template("recipes.html", recipes=recipes, error=None, **common)
