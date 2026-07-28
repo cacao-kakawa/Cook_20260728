@@ -1,3 +1,4 @@
+import base64
 import os
 import sys
 
@@ -66,22 +67,27 @@ def recognize():
             error="jpg, jpeg, png 형식의 이미지만 업로드할 수 있습니다.",
         )
 
+    image_bytes = file.read()
+    preview_src = f"data:{file.mimetype};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+
     try:
-        ingredients = recognize_ingredients(file.read())
+        ingredients = recognize_ingredients(image_bytes)
     except Exception:
         return render_template(
             "index.html", ingredients=session.get("ingredients", []),
             error="재료 인식에 실패했습니다. 잠시 후 다시 시도해주세요.",
+            preview_src=preview_src,
         )
 
     if not ingredients:
         return render_template(
             "index.html", ingredients=[],
             error="재료를 인식하지 못했습니다. 사진을 다시 찍어주세요.",
+            preview_src=preview_src,
         )
 
     session["ingredients"] = ingredients
-    return render_template("index.html", ingredients=ingredients, error=None)
+    return render_template("index.html", ingredients=ingredients, error=None, preview_src=preview_src)
 
 
 @app.route("/ingredients/add", methods=["POST"])

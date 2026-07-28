@@ -97,6 +97,14 @@ input[type="text"] {
   margin-top: 1rem;
 }
 
+.preview-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  margin: 1rem 0;
+  display: block;
+}
+
 .condition-form {
   display: flex;
   flex-direction: column;
