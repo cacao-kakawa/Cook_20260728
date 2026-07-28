@@ -1,6 +1,7 @@
 import base64
 import os
 import sys
+import traceback
 
 # Vercel의 Python 런타임은 이 파일이 있는 폴더를 sys.path에 자동으로 넣어주지 않아
 # "utils" 패키지를 못 찾는 ModuleNotFoundError가 발생한다. 명시적으로 추가해준다.
@@ -73,6 +74,8 @@ def recognize():
     try:
         ingredients = recognize_ingredients(image_bytes)
     except Exception:
+        print("=== /recognize 실패 ===", flush=True)
+        traceback.print_exc()
         return render_template(
             "index.html", ingredients=session.get("ingredients", []),
             error="재료 인식에 실패했습니다. 잠시 후 다시 시도해주세요.",
@@ -149,6 +152,8 @@ def recipes_generate():
             exclude=exclude,
         )
     except Exception:
+        print("=== /recipes/generate 실패 ===", flush=True)
+        traceback.print_exc()
         return render_template(
             "recipes.html", recipes=[],
             error="레시피 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
@@ -183,6 +188,8 @@ def recipes_save(index):
             save_recipe(profile_id, recipes[index])
             flash(f"'{recipes[index]['title']}' 레시피를 저장했습니다.")
         except Exception:
+            print("=== /recipes/save 실패 ===", flush=True)
+            traceback.print_exc()
             flash("레시피 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")
     return redirect(url_for("recipes_page"))
 
