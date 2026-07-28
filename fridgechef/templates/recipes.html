@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>냉장고 셰프 - 레시피 추천</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <nav class="nav"><a href="{{ url_for('index') }}">1단계</a> · <a href="{{ url_for('recipes_page') }}">2단계</a> · <a href="{{ url_for('profile_page') }}">마이페이지</a></nav>
+    <h1>🍳 레시피 추천</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <div class="alert alert-success">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if not ingredients %}
+      <div class="alert">먼저 1단계에서 냉장고 사진을 인식해주세요.</div>
+      <a href="{{ url_for('index') }}"><button type="button">1단계로 돌아가기</button></a>
+    {% else %}
+      <p class="subtitle">인식된 재료</p>
+      <div class="tags">
+        {% for item in ingredients %}
+          <span class="tag">{{ item }}</span>
+        {% endfor %}
+      </div>
+
+      {% if error %}
+        <div class="alert">{{ error }}</div>
+      {% endif %}
+
+      <form action="{{ url_for('recipes_generate') }}" method="post" class="condition-form">
+        <label>인분 수
+          <input type="number" name="servings" value="{{ default_servings }}" min="1" max="10">
+        </label>
+        <label>최대 조리 시간(분, 선택)
+          <input type="number" name="max_time_minutes" min="1" placeholder="예: 30">
+        </label>
+        <label>알레르기/비선호 재료 (쉼표로 구분)
+          <input type="text" name="exclude" value="{{ default_exclude }}" placeholder="예: 새우, 땅콩">
+        </label>
+        <button type="submit">레시피 추천받기</button>
+      </form>
+
+      {% if recipes %}
+        <h2>추천 레시피</h2>
+        <div class="recipe-list">
+          {% for r in recipes %}
+            <div class="recipe-card">
+              <h3>{{ r.title }}</h3>
+              <p class="recipe-meta">⏱ {{ r.time_minutes }}분 · 🍽 {{ r.servings }}인분</p>
+              {% if r.warning %}
+                <div class="alert">⚠ 제외 요청한 재료가 이 레시피에 포함되어 있을 수 있습니다.</div>
+              {% endif %}
+              <div class="tags">
+                {% for item in r.used_ingredients %}
+                  <span class="tag tag-used">{{ item }}</span>
+                {% endfor %}
+                {% for item in r.missing_ingredients %}
+                  <span class="tag tag-missing">{{ item }}</span>
+                {% endfor %}
+              </div>
+              <ol class="steps">
+                {% for step in r.steps %}
+                  <li>{{ step }}</li>
+                {% endfor %}
+              </ol>
+              {% if profile_id %}
+                <form action="{{ url_for('recipes_save', index=loop.index0) }}" method="post">
+                  <button type="submit" class="next-step">이 레시피 저장하기</button>
+                </form>
+              {% else %}
+                <a href="{{ url_for('profile_page') }}"><button type="button" class="next-step">
+                  프로필을 만들고 저장하기
+                </button></a>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</body>
+</html>

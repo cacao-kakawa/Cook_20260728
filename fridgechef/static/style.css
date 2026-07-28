@@ -1,0 +1,189 @@
+body {
+  font-family: sans-serif;
+  background: #FFFFFF;
+  color: #2B2B2B;
+  margin: 0;
+  padding: 2rem;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: #3DA35D;
+}
+
+.subtitle {
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.alert {
+  background: #FDECEA;
+  color: #B3261E;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.upload-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+button {
+  background: #3DA35D;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #A9A9A9;
+  cursor: not-allowed;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.tag-form {
+  display: inline;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #F4F9F1;
+  border: 1px solid #3DA35D;
+  color: #2B2B2B;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+}
+
+.tag-remove {
+  background: none;
+  color: #B3261E;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+input[type="text"] {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  flex: 1;
+}
+
+.next-step {
+  margin-top: 1rem;
+}
+
+.condition-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 320px;
+}
+
+.condition-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.condition-form input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.recipe-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  background: #FAFAFA;
+}
+
+.recipe-meta {
+  color: #666;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.tag-used {
+  background: #F4F9F1;
+  border-color: #3DA35D;
+}
+
+.tag-missing {
+  background: #FFF4E5;
+  border-color: #E8A33D;
+  color: #8A5A00;
+}
+
+.steps {
+  padding-left: 1.2rem;
+}
+
+.nav {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.nav a {
+  color: #3DA35D;
+  text-decoration: none;
+}
+
+.alert-success {
+  background: #EAF6EC;
+  color: #256D3B;
+}
+
+.profile-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  background: #FAFAFA;
+  margin-bottom: 1.5rem;
+}
+
+.caption {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.tag-remove-btn {
+  background: #FDECEA;
+  color: #B3261E;
+  margin-top: 0.6rem;
+}

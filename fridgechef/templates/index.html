@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>냉장고 셰프 - 재료 인식</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <nav class="nav"><a href="{{ url_for('index') }}">1단계</a> · <a href="{{ url_for('recipes_page') }}">2단계</a> · <a href="{{ url_for('profile_page') }}">마이페이지</a></nav>
+    <h1>🧊 냉장고 셰프</h1>
+    <p class="subtitle">냉장고 사진을 올리면 AI가 식재료를 인식해드려요.</p>
+
+    {% if error %}
+      <div class="alert">{{ error }}</div>
+    {% endif %}
+
+    <form action="{{ url_for('recognize') }}" method="post" enctype="multipart/form-data" class="upload-form">
+      <input type="file" name="image" accept=".jpg,.jpeg,.png" required>
+      <button type="submit">재료 인식하기</button>
+    </form>
+
+    {% if ingredients %}
+      <h2>인식된 재료</h2>
+      <div class="tags">
+        {% for item in ingredients %}
+          <form action="{{ url_for('remove_ingredient') }}" method="post" class="tag-form">
+            <input type="hidden" name="target" value="{{ item }}">
+            <span class="tag">{{ item }} <button type="submit" class="tag-remove">×</button></span>
+          </form>
+        {% endfor %}
+      </div>
+
+      <form action="{{ url_for('add_ingredient') }}" method="post" class="add-form">
+        <input type="text" name="new_ingredient" placeholder="빠진 재료를 직접 추가하세요">
+        <button type="submit">추가</button>
+      </form>
+
+      <a href="{{ url_for('recipes_page') }}"><button type="button" class="next-step">
+        이 재료로 레시피 추천받기 →
+      </button></a>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>냉장고 셰프 - 마이페이지</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <nav class="nav"><a href="{{ url_for('index') }}">1단계</a> · <a href="{{ url_for('recipes_page') }}">2단계</a> · <a href="{{ url_for('profile_page') }}">마이페이지</a></nav>
+    <h1>👤 마이페이지</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <div class="alert alert-success">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="profile-card">
+      {% if profile_id %}
+        <p class="subtitle">현재 프로필: <strong>{{ profile_nickname }}</strong></p>
+      {% else %}
+        <p class="subtitle">아직 선택된 프로필이 없습니다.</p>
+      {% endif %}
+
+      {% if profiles %}
+        <form action="{{ url_for('profile_select') }}" method="post" class="condition-form">
+          <label>기존 프로필 선택
+            <select name="profile_id">
+              {% for p in profiles %}
+                <option value="{{ p.id }}" {% if p.id == profile_id %}selected{% endif %}>{{ p.nickname }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="submit">선택</button>
+        </form>
+      {% endif %}
+
+      <h2>새 프로필 만들기</h2>
+      <form action="{{ url_for('profile_create') }}" method="post" class="condition-form">
+        <label>닉네임
+          <input type="text" name="nickname" required>
+        </label>
+        <label>알레르기 재료 (쉼표로 구분)
+          <input type="text" name="allergies" placeholder="예: 새우, 땅콩">
+        </label>
+        <label>비선호 재료 (쉼표로 구분)
+          <input type="text" name="dislikes" placeholder="예: 오이">
+        </label>
+        <label>기본 인분 수
+          <input type="number" name="default_servings" value="2" min="1" max="10">
+        </label>
+        <button type="submit">프로필 만들기</button>
+      </form>
+    </div>
+
+    <h2>저장된 레시피</h2>
+    {% if not profile_id %}
+      <p>프로필을 선택하거나 만들면 저장된 레시피가 여기에 표시됩니다.</p>
+    {% elif not saved_recipes %}
+      <p>아직 저장한 레시피가 없어요.</p>
+    {% else %}
+      <div class="recipe-list">
+        {% for r in saved_recipes %}
+          <div class="recipe-card">
+            <h3>{{ r.title }}</h3>
+            <p class="recipe-meta">⏱ {{ r.time_minutes }}분 · 🍽 {{ r.servings }}인분 · 저장일 {{ r.saved_at[:10] }}</p>
+            <div class="tags">
+              {% for item in r.used_ingredients %}
+                <span class="tag tag-used">{{ item }}</span>
+              {% endfor %}
+              {% for item in r.missing_ingredients %}
+                <span class="tag tag-missing">{{ item }}</span>
+              {% endfor %}
+            </div>
+            <ol class="steps">
+              {% for step in r.steps %}
+                <li>{{ step }}</li>
+              {% endfor %}
+            </ol>
+            <form action="{{ url_for('profile_recipe_delete') }}" method="post">
+              <input type="hidden" name="recipe_id" value="{{ r.id }}">
+              <button type="submit" class="tag-remove-btn">삭제</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <p class="caption">본 서비스는 로컬 실행 기준으로 데이터가 유지됩니다. 배포 환경(Streamlit/Flask Community 호스팅 등)에서는 재시작 시 초기화될 수 있습니다.</p>
+  </div>
+</body>
+</html>
