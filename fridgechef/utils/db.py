@@ -1,22 +1,23 @@
 import os
 
-from supabase import create_client
+import requests
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-_client = None
+_HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+}
 
 
 class NicknameTakenError(Exception):
     pass
 
 
-def _get_client():
-    global _client
-    if _client is None:
-        _client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    return _client
+def _rest(path: str) -> str:
+    return f"{SUPABASE_URL}/rest/v1/{path}"
 
 
 def init_db() -> None:
@@ -25,53 +26,88 @@ def init_db() -> None:
 
 
 def list_profiles() -> list[dict]:
-    res = _get_client().table("profiles").select("*").order("nickname").execute()
-    return res.data
+    res = requests.get(
+        _rest("profiles"),
+        params={"select": "*", "order": "nickname.asc"},
+        headers=_HEADERS,
+        timeout=10,
+    )
+    res.raise_for_status()
+    return res.json()
 
 
 def get_profile(profile_id: int) -> dict | None:
-    res = _get_client().table("profiles").select("*").eq("id", profile_id).limit(1).execute()
-    return res.data[0] if res.data else None
+    res = requests.get(
+        _rest("profiles"),
+        params={"select": "*", "id": f"eq.{profile_id}", "limit": 1},
+        headers=_HEADERS,
+        timeout=10,
+    )
+    res.raise_for_status()
+    rows = res.json()
+    return rows[0] if rows else None
 
 
 def create_profile(nickname: str, allergies: list[str], dislikes: list[str], servings: int) -> int:
-    client = _get_client()
-    existing = client.table("profiles").select("id").eq("nickname", nickname).limit(1).execute()
-    if existing.data:
+    existing = requests.get(
+        _rest("profiles"),
+        params={"select": "id", "nickname": f"eq.{nickname}", "limit": 1},
+        headers=_HEADERS,
+        timeout=10,
+    )
+    existing.raise_for_status()
+    if existing.json():
         raise NicknameTakenError(nickname)
 
-    res = client.table("profiles").insert({
-        "nickname": nickname,
-        "allergies": ",".join(allergies),
-        "dislikes": ",".join(dislikes),
-        "default_servings": servings,
-    }).execute()
-    return res.data[0]["id"]
+    res = requests.post(
+        _rest("profiles"),
+        json={
+            "nickname": nickname,
+            "allergies": ",".join(allergies),
+            "dislikes": ",".join(dislikes),
+            "default_servings": servings,
+        },
+        headers={**_HEADERS, "Prefer": "return=representation"},
+        timeout=10,
+    )
+    res.raise_for_status()
+    return res.json()[0]["id"]
 
 
 def save_recipe(profile_id: int, recipe: dict) -> None:
-    _get_client().table("saved_recipes").insert({
-        "profile_id": profile_id,
-        "title": recipe["title"],
-        "time_minutes": recipe.get("time_minutes"),
-        "servings": recipe.get("servings"),
-        "used_ingredients": recipe.get("used_ingredients", []),
-        "missing_ingredients": recipe.get("missing_ingredients", []),
-        "steps": recipe.get("steps", []),
-    }).execute()
+    res = requests.post(
+        _rest("saved_recipes"),
+        json={
+            "profile_id": profile_id,
+            "title": recipe["title"],
+            "time_minutes": recipe.get("time_minutes"),
+            "servings": recipe.get("servings"),
+            "used_ingredients": recipe.get("used_ingredients", []),
+            "missing_ingredients": recipe.get("missing_ingredients", []),
+            "steps": recipe.get("steps", []),
+        },
+        headers=_HEADERS,
+        timeout=10,
+    )
+    res.raise_for_status()
 
 
 def get_saved_recipes(profile_id: int) -> list[dict]:
-    res = (
-        _get_client()
-        .table("saved_recipes")
-        .select("*")
-        .eq("profile_id", profile_id)
-        .order("saved_at", desc=True)
-        .execute()
+    res = requests.get(
+        _rest("saved_recipes"),
+        params={"select": "*", "profile_id": f"eq.{profile_id}", "order": "saved_at.desc"},
+        headers=_HEADERS,
+        timeout=10,
     )
-    return res.data
+    res.raise_for_status()
+    return res.json()
 
 
 def delete_recipe(recipe_id: int) -> None:
-    _get_client().table("saved_recipes").delete().eq("id", recipe_id).execute()
+    res = requests.delete(
+        _rest("saved_recipes"),
+        params={"id": f"eq.{recipe_id}"},
+        headers=_HEADERS,
+        timeout=10,
+    )
+    res.raise_for_status()

@@ -2,4 +2,4 @@ flask
 openai
 pillow
 python-dotenv
-supabase
+requests
